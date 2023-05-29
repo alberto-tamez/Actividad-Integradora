@@ -1,0 +1,87 @@
+void voronoi(const vector<pair<int, int>> &centrales, int xmin, int ymin, int xmax, int ymax)
+{
+
+    // Generar la malla con las coordenadas x e y del rectángulo delimitado
+    vector<vector<int>> malla(xmax - xmin + 1, vector<int>(ymax - ymin + 1, -1));
+
+    int incremento = 10; // Puedes ajustar este valor según el tamaño del área
+
+    for (int x = xmin; x <= xmax; x += incremento)
+    {
+        for (int y = ymin; y <= ymax; y += incremento)
+        {
+            malla[x - xmin][y - ymin] = centralMasCercana(x, y, centrales);
+        }
+    }
+
+    // Generar polígonos de Voronoi para cada central según la malla
+    vector<vector<pair<int, int>>> poligonos(centrales.size());
+    for (int x = 0; x < malla.size(); ++x)
+    {
+        for (int y = 0; y < malla[0].size(); ++y)
+        {
+            int central_idx = malla[x][y];
+            poligonos[central_idx].push_back({x + xmin, y + ymin});
+        }
+    }
+    vector<vector<pair<int, int>>> poligonosFiltrados(centrales.size());
+
+    for (int i = 0; i < poligonos.size(); ++i)
+    {
+        for (const auto &punto : poligonos[i])
+        {
+            if (punto.first >= xmin && punto.first <= xmax && punto.second >= ymin && punto.second <= ymax)
+            {
+                poligonosFiltrados[i].push_back(punto);
+            }
+        }
+    }
+
+    // Imprimir los polígonos de Voronoi, en el orden ascendente de la menor coordenada x de cada polígono
+    cout << -4 << endl;
+    for (int i = 0; i < poligonosFiltrados.size(); ++i)
+    {
+        auto comparaCentrales = [&centrales](int i, int j)
+        {
+            return centrales[i].first < centrales[j].first;
+        };
+        vector<int> indice(centrales.size());
+        iota(indice.begin(), indice.end(), 0);
+        sort(indice.begin(), indice.end(), comparaCentrales);
+
+        int central_idx = indice[i];
+
+        // Ordenar puntos del polígono en sentido horario
+        auto puntoCentral = centrales[central_idx];
+        auto comparaPuntos = [&puntoCentral](pair<int, int> a, pair<int, int> b)
+        {
+            int axdiff = a.first - puntoCentral.first;
+            int aydiff = a.second - puntoCentral.second;
+            int bxdiff = b.first - puntoCentral.first;
+            int bydiff = b.second - puntoCentral.second;
+
+            if (axdiff * bydiff - aydiff * bxdiff > 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        };
+
+        sort(poligonosFiltrados[central_idx].begin(), poligonosFiltrados[central_idx].end(), comparaPuntos);
+
+        // Imprimir polígono de Voronoi
+        double epsilon = 30.0; // El valor de epsilon se puede ajustar según la cantidad de simplificación deseada
+        vector<pair<int, int>> poligonoSimplificado;
+        ramerDouglasPeucker(poligonosFiltrados[central_idx], epsilon, poligonoSimplificado);
+
+        // Imprimir polígono de Voronoi simplificado
+        cout << -4 << i + 1 << endl;
+        for (const auto &punto : poligonoSimplificado)
+        {
+            cout << punto.first << " " << punto.second << endl;
+        }
+    }
+}
